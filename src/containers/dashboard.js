@@ -58,10 +58,38 @@ class Dashboard extends Component {
     );
   }
 
+  createChildren() {
+    if (Object.keys(this.props.children).length === 0) {
+      return (
+        <li>
+          Loading...
+        </li>
+      );
+    }
+
+    const avatarUrl = 'http://resourcecenter4u.com/wp-content/uploads/2015/01/avatar.png';
+
+    return (
+      Object.keys(this.props.children).map((child) => {
+        return (
+          <Col md={6}>
+            <Panel header={this.props.children[child].name} bsStyle='info'>
+              <Row>
+                <Col xs={2}>
+                  <Image src={this.props.children[child].photo || avatarUrl} className='avatar' rounded/>
+                </Col>
+              </Row>
+            </Panel>
+          </Col>
+        );
+      })
+    );
+  }
+
   render() {
     return (
       <div>
-        <h1>{this.props.account.username + '\'s Dashboard'}</h1>
+        <h1>{this.props.account.username ? this.props.account.username + '\'s Dashboard' : ''}</h1>
         <br/>
         <hr/>
         <br/>
@@ -70,7 +98,7 @@ class Dashboard extends Component {
           <Col xs={10}>
             <Row>
               {this.createChildrenList()}
-              </Row>
+            </Row>
           </Col>
           <Col xs={1} />
         </Row>

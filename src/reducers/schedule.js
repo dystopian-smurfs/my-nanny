@@ -7,7 +7,6 @@ const ScheduleReducer = (state = {
       isFetching: true
     });
   } else if ( action.type === 'RECEIVE_SCHEDULE' ) {
-    console.log('payload', action.payload);
     let newSchedule = {};
     for (let i = 0; i < action.payload.childList.length; i++) {
       newSchedule[action.payload.childList[i]] = action.payload.schedule[i].schedule;

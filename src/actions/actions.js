@@ -1,6 +1,8 @@
 import fetch from 'isomorphic-fetch';
 import Promise from 'bluebird';
 
+const apiEndpoint = 'https://localhost:1337/api/';
+
 var date = new Date();
 var day = date.getDate();
 var month = date.getMonth();
@@ -13,18 +15,18 @@ const url = (endpoint, id, startDate, endDate, page) => {
   page = page || 1;
 
   if (endpoint === 'getAccount') {
-    return 'https://api.my-nanny.org/api/account?access_token=';
+    return apiEndpoint + 'account?access_token=';
   } else if (endpoint === 'getChores') {
-    return 'https://api.my-nanny.org/api/children/' + id + '/chores?' + 
+    return apiEndpoint + 'children/' + id + '/chores?' + 
     'start_date=' + startDate + '&end_date=' + endDate + '&page=' + 
     page + '&access_token=';
   } else if (endpoint === 'getChildren') {
-    return 'https://api.my-nanny.org/api/children?access_token=';
+    return apiEndpoint + 'children?access_token=';
   } else if (endpoint === 'getSchedule') {
-    return 'https://api.my-nanny.org/api/children/' + id +
+    return apiEndpoint + 'children/' + id +
       '/schedule?access_token=';
   } else if (endpoint === 'addChild') {
-    return 'https://api.my-nanny.org/api/children?access_token=';
+    return apiEndpoint + 'children?access_token=';
   }
 };
 
@@ -118,6 +120,18 @@ export const toggleShowChild = (id) => {
   };
 };
 
+const getChildDetails = (list) => {
+  let childIds = [];
+  list.children.forEach((child) => {
+    childIds.push(child.id);
+  });
+  return dispatch => Promise.all([
+    dispatch(receiveChildren(list)),
+    dispatch(requestSchedule()),
+    dispatch(requestChores(fullDate))
+  ]);
+};
+
 export const updateAccountInStore = (username, phone, timezone, email) => {
   const newAccountData = {
     username: username,
@@ -127,6 +141,84 @@ export const updateAccountInStore = (username, phone, timezone, email) => {
   };
   return function(dispatch) {
     dispatch(receiveAccount(newAccountData));
+  };
+};
+
+export const getAccountShallow = (token) => {
+  return function(dispatch) {
+    dispatch(requestAccount(token));
+    return fetch(url('getAccount') + token)
+    .then((res) => {
+      if (res.status >= 400) {
+        throw new Error('Error getting account');
+      }
+      return res.json();
+    })
+    .then((account) => {
+      dispatch(receiveAccount(account));
+    })
+    .catch((error) => {
+      console.error('You done messed up:', error);
+    });
+  };
+};
+
+export const getChildren = (token) => {
+  let childIds = [];
+  return function(dispatch) {
+    dispatch(requestChildren(token));
+    return fetch(url('getChildren') + token)
+    .then((res) => {
+      if (res.status >= 400) {
+        throw new Error('Error getting children');
+      }
+      return res.json();
+    })
+    .then((list) => {
+      dispatch(receiveChildren(list));
+      dispatch(requestSchedule());
+      dispatch(requestChores(fullDate));
+      list.children.forEach((child) => {
+        childIds.push(child.id);
+      });
+      var store = [];
+      childIds.forEach((id) => {
+        store.push([
+          fetch(url('getChores', id, fullDate) + token)
+          .then(function(res) { 
+            res = res.json();
+            return res;
+          }),
+          fetch(url('getSchedule', id) + token)
+          .then(function(res) {
+            if (res.status === 500) {
+              return { schedule: {} };
+            }
+            return res.json();
+          })
+        ]);
+      });
+      return Promise.all(store.reduce((a,b) => { return a.concat(b); }, []));
+    })
+    .then((list) => {
+      console.log('here is list', list);
+      var chores = [];
+      var schedules = [];
+      for (var i = 0; i < list.length; i++) {
+        if (i % 2 === 0) {
+          chores.push(list[i]);
+        } else {
+          schedules.push(list[i]);
+        }
+      }
+      // console.log('chores', chores);
+      // console.log('schedules', schedules);
+      dispatch(receiveChores(childIds, chores));
+      dispatch(receiveSchedule(childIds, schedules));
+    })
+    .catch((error) => {
+      console.error('You done messed up:', error);
+    });
   };
 };
 
