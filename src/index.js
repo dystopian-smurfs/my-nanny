@@ -11,16 +11,18 @@ import 'bootstrap/dist/css/bootstrap.css';
 import 'bootstrap/dist/css/bootstrap-theme.css';
 
 // TODO: Remove when done with project!
-import { composeWithDevTools } from 'redux-devtools-extension';
+// import { composeWithDevTools } from 'redux-devtools-extension';
 
-const loggerMiddleware = createLogger();
+// const loggerMiddleware = createLogger();
 
-const store = createStore(allReducers, composeWithDevTools(
-	applyMiddleware(
-    thunkMiddleware,
-    loggerMiddleware
-  )
-));
+// const store = createStore(allReducers, composeWithDevTools(
+// 	applyMiddleware(
+//     thunkMiddleware,
+//     loggerMiddleware
+//   )
+// ));
+
+const store = createStore(allReducers, applyMiddleware(thunkMiddleware));
 
 ReactDOM.render(
   <Provider store={store}>
